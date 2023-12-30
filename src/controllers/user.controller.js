@@ -409,8 +409,57 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, channel[0], "Channel fetched successfully"))
 })
 
+const getWatchHistory = asyncHandler(async (req, res) => {
+    const user = await User.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.user?._id) //NOTE: we need to convert req.user._id to ObjectId since it is a string, usually this is done internally by moongoose when we write find findById and it converts to ObjectId. BUT the code written inside aggregation pipelines goes directly to mongoDB and moongoose doesn't do anything in there so we need to convert it.
+            }
+        },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            //REVIEW: ek baar iss project ko bahar likh ke bhi dekhna
+                            pipeline: [
+                                {
+                                    $project: {
+                                        fullName: 1,
+                                        username: 1,
+                                        avatar: 1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields: {
+                            owner: {
+                                $first: "$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, user[0].watchHistory, "Watch history fetched successfully"))
+})
+
 export {
-    changeCurrentPassword, getCurrentUser, getUserChannelProfile, loginUser,
+    changeCurrentPassword, getCurrentUser, getUserChannelProfile, getWatchHistory, loginUser,
     logoutUser, refreshAccessToken, registerUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage
 };
 

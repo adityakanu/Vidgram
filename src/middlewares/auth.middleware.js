@@ -1,6 +1,7 @@
-import { decode, jwt } from "jsonwebtoken";
-import { User } from "../models/user.model";
-import { asyncHandler } from "../utils/asyncHandler";
+import jwt from "jsonwebtoken";
+import { User } from "../models/user.model.js";
+import { ApiError } from "../utils/ApiError.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 // since res use nhi hai isliye uski jageh underscore
 export const verifyJWT = asyncHandler(async (req, _, next) => {
@@ -8,7 +9,7 @@ export const verifyJWT = asyncHandler(async (req, _, next) => {
         const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "")
 
         if (!token) {
-            throw new ApiError(401, "Unauthorized Request")
+            throw new ApiError(401, "Unauthorized Token Request")
         }
 
         const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
